@@ -1,0 +1,10 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "confixer"
+version = "0.1.0"
+description = "A modern configuration manager for Python with layered overrides and CLI."
+authors = [{ name = "MaanenDev", email = "semvanmaanendev@proton.me" }]
+requires-python = ">=3.11.0"
