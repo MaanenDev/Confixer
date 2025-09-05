@@ -1,9 +1,11 @@
 import pytest
 import yaml
 import json
+import tomli
 from confixer.sources.base import ConfigSource
 from confixer.sources.yaml_source import YamlSource
 from confixer.sources.json_source import JsonSource
+from confixer.sources.toml_source import TomlSource
 
 
 class DummySource(ConfigSource):
@@ -94,3 +96,42 @@ def test_load_empty_json(tmp_path):
     source = JsonSource(str(file_path))
     with pytest.raises(json.JSONDecodeError):
         source.load()
+
+
+def test_load_valid_toml(tmp_path):
+    data = {"key": "value", "nested": {"a": 1}}
+    file_path = tmp_path / "config.toml"
+    file_path.write_text('key = "value"\n[nested]\na = 1\n', encoding="utf-8")
+
+    source = TomlSource(str(file_path))
+    loaded = source.load()
+    assert loaded == data
+
+
+def test_load_invalid_toml(tmp_path):
+    invalid_toml = "key = 'value'\n= invalid"
+    file_path = tmp_path / "invalid.toml"
+    file_path.write_text(invalid_toml, encoding="utf-8")
+
+    source = TomlSource(str(file_path))
+    with pytest.raises(tomli.TOMLDecodeError):
+        source.load()
+
+
+def test_load_non_dict_root_toml(tmp_path):
+    toml_data = "array = [1, 2, 3]"
+    file_path = tmp_path / "array.toml"
+    file_path.write_text(toml_data, encoding="utf-8")
+
+    source = TomlSource(str(file_path))
+    loaded = source.load()
+    assert isinstance(loaded, dict)
+
+
+def test_load_empty_toml(tmp_path):
+    file_path = tmp_path / "empty.toml"
+    file_path.write_text("", encoding="utf-8")
+
+    source = TomlSource(str(file_path))
+    loaded = source.load()
+    assert loaded == {}
