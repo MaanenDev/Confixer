@@ -157,7 +157,7 @@ def test_envsource_load_from_dotenv(tmp_path, monkeypatch):
     data = source.load()
 
     assert data["FOO"] == "from_file"
-    assert data["BAR"] == "123"
+    assert data["BAR"] == 123  # Type coerced to int
     # EMPTY should be dropped because dotenv returns None
     assert "EMPTY" not in data
 
@@ -170,8 +170,8 @@ def test_envsource_with_prefix(monkeypatch):
     source = EnvSource(prefix="APP_")
     data = source.load()
 
-    # Prefix should be stripped
-    assert data == {"HOST": "localhost", "PORT": "8080"}
+    # Prefix should be stripped, PORT coerced to int
+    assert data == {"HOST": "localhost", "PORT": 8080}
     assert "OTHER" not in data
 
 
