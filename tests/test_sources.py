@@ -6,6 +6,7 @@ from confixer.sources.base import ConfigSource
 from confixer.sources.yaml_source import YamlSource
 from confixer.sources.json_source import JsonSource
 from confixer.sources.toml_source import TomlSource
+from confixer.sources.env_source import EnvSource
 
 
 class DummySource(ConfigSource):
@@ -135,3 +136,47 @@ def test_load_empty_toml(tmp_path):
     source = TomlSource(str(file_path))
     loaded = source.load()
     assert loaded == {}
+
+
+def test_envsource_load_from_os(monkeypatch):
+    monkeypatch.setenv("FOO", "bar")
+    source = EnvSource()
+    data = source.load()
+    assert "FOO" in data
+    assert data["FOO"] == "bar"
+
+
+def test_envsource_load_from_dotenv(tmp_path, monkeypatch):
+    # Clear FOO if it exists in real environment
+    monkeypatch.delenv("FOO", raising=False)
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("FOO=from_file\nBAR=123\nEMPTY=\n", encoding="utf-8")
+
+    source = EnvSource(path=str(env_file))
+    data = source.load()
+
+    assert data["FOO"] == "from_file"
+    assert data["BAR"] == "123"
+    # EMPTY should be dropped because dotenv returns None
+    assert "EMPTY" not in data
+
+
+def test_envsource_with_prefix(monkeypatch):
+    monkeypatch.setenv("APP_HOST", "localhost")
+    monkeypatch.setenv("APP_PORT", "8080")
+    monkeypatch.setenv("OTHER", "ignore_me")
+
+    source = EnvSource(prefix="APP_")
+    data = source.load()
+
+    # Prefix should be stripped
+    assert data == {"HOST": "localhost", "PORT": "8080"}
+    assert "OTHER" not in data
+
+
+def test_envsource_empty(monkeypatch):
+    monkeypatch.setenv("SHOULD_STAY", "yes")
+    source = EnvSource(prefix="NONE_")  # no match
+    data = source.load()
+    assert data == {}
